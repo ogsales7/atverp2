@@ -19,16 +19,13 @@ def cadastrar_produto():
         ), {"nome": nome, "categoria": categoria, "preco": preco,
             "quantidade": quantidade, "ultima_mov": datahora})
         conn.commit()
-
     print("Produto cadastrado com sucesso!")
 
 def excluir_produto():
     id_produto = int(input("Informe o ID do produto a ser excluído: "))
-    
     with engine.connect() as conn:
         conn.execute(text("DELETE FROM produtos WHERE id=:id"), {"id": id_produto})
         conn.commit()
-
     print("🗑️ Produto excluído com sucesso!")
 
 def movimentar_estoque():
@@ -38,17 +35,13 @@ def movimentar_estoque():
 
     with engine.connect() as conn:
         df = pd.read_sql("SELECT * FROM produtos WHERE id=%s" % id_produto, conn)
-
         if df.empty:
             print("Produto não encontrado.")
             return
 
         quantidade_atual = int(df.loc[0, "quantidade"])
-
-        # Entrada
         if tipo == 1:
             nova_qtd = quantidade_atual + qtd
-        # Saída
         elif tipo == 2:
             if qtd > quantidade_atual:
                 print("Estoque insuficiente.")
@@ -59,88 +52,62 @@ def movimentar_estoque():
             return
 
         datahora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
         conn.execute(text(
             "UPDATE produtos SET quantidade=:qtd, ultima_mov=:mov WHERE id=:id"
         ), {"qtd": nova_qtd, "mov": datahora, "id": id_produto})
         conn.commit()
-
     print("Movimentação registrada.")
 
 def mostrar_relatorio():
     df = pd.read_sql("SELECT * FROM produtos", engine)
-
     print("\n📊 --- Relatório de Produtos ---")
-
     if df.empty:
         print("Nenhum produto cadastrado.")
         return
-
     for _, p in df.iterrows():
         msg = f'ID:{p["id"]} | Nome:{p["nome"]} | Cat:{p["categoria"]} | Preço:R${p["preco"]:.2f} | Qtd:{p["quantidade"]} | Última Mov:{p["ultima_mov"]}'
         if p["quantidade"] < 5:
-            msg += " ESTOQUE BAIXO"
+            msg += "ESTOQUE BAIXO"
         print(msg)
 
 def curva_abc():
     df = pd.read_sql("SELECT * FROM produtos", engine)
-
     if df.empty:
         print("Nenhum produto.")
         return
-
     df["valor_total"] = df["preco"] * df["quantidade"]
     df = df.sort_values(by="valor_total", ascending=False)
     soma = df["valor_total"].sum()
-
     acumulado = 0
     print("\n📈 Curva ABC:")
-
     for _, row in df.iterrows():
         acumulado += row["valor_total"]
         perc = (acumulado / soma) * 100
-
-        if perc <= 80:
-            classe = "A"
-        elif perc <= 95:
-            classe = "B"
-        else:
-            classe = "C"
-
+        if perc <= 80: classe = "A"
+        elif perc <= 95: classe = "B"
+        else: classe = "C"
         print(f'ID:{row["id"]} | {row["nome"]} | Valor:R${row["valor_total"]:.2f} | Classe:{classe}')
 
 def comparar_categorias():
     df = pd.read_sql("SELECT * FROM produtos", engine)
-
     if df.empty:
         print("Nenhum produto.")
         return
-
     resumo = df.groupby("categoria")["quantidade"].sum()
-
     print("\n📊 Comparação de Categorias:")
     print(resumo)
-
     resumo.plot(kind="bar", title="Comparação de Categorias")
     plt.show()
 
 def dashboard():
     df = pd.read_sql("SELECT * FROM produtos", engine)
-
     if df.empty:
         print("Nenhum produto.")
         return
-
     df.plot(x="nome", y="quantidade", kind="bar", title="Estoque por Produto")
     plt.show()
-
     df["valor_total"] = df["preco"] * df["quantidade"]
-
-    df.groupby("categoria")["valor_total"].sum().plot(
-        kind="pie",
-        autopct="%1.1f%%",
-        title="Valor por Categoria"
-    )
+    df.groupby("categoria")["valor_total"].sum().plot(kind="pie", autopct="%1.1f%%", title="Valor por Categoria")
     plt.show()
 
 def menu():
@@ -154,9 +121,7 @@ def menu():
         print("6. Comparar Categorias")
         print("7. Dashboard com Gráficos")
         print("8. Sair")
-
         opcao = input("Escolha: ")
-
         if opcao == "1": cadastrar_produto()
         elif opcao == "2": excluir_produto()
         elif opcao == "3": movimentar_estoque()
